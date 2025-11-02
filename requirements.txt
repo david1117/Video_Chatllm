@@ -1,0 +1,25 @@
+# Gemini API (新版，統一支援對話和 Veo 視頻生成)
+google-genai>=1.47.0
+
+# LangGraph for workflow management
+langgraph>=0.0.1
+langchain>=0.1.0
+langchain-core>=0.1.0
+
+# API clients for multimodal tools
+requests>=2.31.0
+openai>=1.12.0
+
+# Data handling
+numpy>=1.24.0
+pillow>=10.0.0
+
+# Configuration management
+python-dotenv>=1.0.0
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+
+# Utilities
+aiohttp>=3.9.0
+tenacity>=8.2.0
+

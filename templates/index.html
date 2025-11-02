@@ -1,0 +1,1686 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VideoChatLLM - 多模態創作助手</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --primary-color: #6366f1;
+            --secondary-color: #8b5cf6;
+            --success-color: #10b981;
+            --danger-color: #ef4444;
+            --dark-bg: #1e1e2e;
+            --card-bg: #27293d;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            border: none;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 20px;
+            border: none;
+        }
+
+        .card-header h5 {
+            margin: 0;
+            font-weight: 600;
+        }
+
+        .card-body {
+            padding: 30px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(99, 102, 241, 0.4);
+        }
+
+        .result-image {
+            width: 100%;
+            border-radius: 10px;
+            margin-top: 15px;
+            max-height: 400px;
+            object-fit: contain;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner-border {
+            width: 3rem;
+            height: 3rem;
+            border-width: 0.3em;
+        }
+
+        .feature-tabs {
+            margin-bottom: 20px;
+        }
+
+        .nav-pills .nav-link {
+            color: white;
+            border-radius: 25px;
+            margin-right: 10px;
+            padding: 10px 25px;
+            transition: all 0.3s;
+        }
+
+        .nav-pills .nav-link.active {
+            background: white;
+            color: var(--primary-color);
+        }
+
+        .alert {
+            border-radius: 10px;
+            border: none;
+            margin-top: 15px;
+        }
+
+        .video-player {
+            width: 100%;
+            border-radius: 10px;
+            margin-top: 15px;
+            max-height: 400px;
+        }
+
+        .generation-time {
+            color: #6c757d;
+            font-size: 0.9rem;
+            margin-top: 10px;
+        }
+
+        .icon-feature {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            color: var(--primary-color);
+        }
+
+        .feature-description {
+            color: #6c757d;
+            margin-bottom: 20px;
+        }
+
+        #historyContainer {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            padding: 10px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        /* 智能對話助手樣式 */
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 70vh;
+            min-height: 500px;
+            max-height: 80vh;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            scroll-behavior: smooth;
+        }
+
+        /* 生成的圖片區域優化 */
+        .result-preview {
+            margin-top: 15px;
+            max-height: 600px;
+            overflow-y: auto;
+            padding: 10px;
+            background: rgba(255,255,255,0.5);
+            border-radius: 8px;
+        }
+
+        .batch-item {
+            margin-bottom: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            background: #f9f9f9;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .batch-header {
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .batch-header h4 {
+            margin: 0 0 8px 0;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .batch-prompt {
+            margin: 0;
+            font-size: 14px;
+            opacity: 0.9;
+            line-height: 1.4;
+        }
+
+        .batch-item img {
+            margin-top: 0;
+            border-radius: 0;
+            width: 100%;
+            height: auto;
+            max-height: 400px;
+            object-fit: contain;
+        }
+
+        .result-preview img,
+        .result-preview video {
+            width: 100%;
+            max-width: 100%;
+            height: auto;
+            border-radius: 10px;
+            margin-top: 10px;
+            object-fit: contain;
+        }
+
+        .message {
+            display: flex;
+            margin-bottom: 20px;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message.assistant {
+            justify-content: flex-start;
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 15px 20px;
+            border-radius: 18px;
+            word-wrap: break-word;
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border-bottom-right-radius: 5px;
+        }
+
+        .message.assistant .message-content {
+            background: white;
+            color: #333;
+            border-bottom-left-radius: 5px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .message-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+            color: #6c757d;
+        }
+
+        .message-header i {
+            margin-right: 5px;
+        }
+
+        .message-files {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .file-preview {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+
+        .file-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* 批量生成樣式 - 已在上面統一處理 */
+
+        .chat-input-area {
+            background: white;
+            border-radius: 15px;
+            padding: 15px;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        }
+
+        .file-upload-zone {
+            border: 2px dashed #ddd;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .file-upload-zone:hover {
+            border-color: var(--primary-color);
+            background: #f8f9fa;
+        }
+
+        .file-upload-zone.dragover {
+            border-color: var(--primary-color);
+            background: #e3f2fd;
+        }
+
+        .uploaded-files {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .uploaded-file-item {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid #ddd;
+        }
+
+        .uploaded-file-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .uploaded-file-item .remove-file {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: var(--danger-color);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .chat-input-box {
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input-box textarea {
+            flex: 1;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            padding: 12px;
+            resize: none;
+            font-size: 1rem;
+        }
+
+        .chat-input-box textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .send-btn {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border: none;
+            color: white;
+            padding: 0 25px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .send-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(99, 102, 241, 0.4);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .typing-indicator {
+            display: flex;
+            gap: 5px;
+            padding: 15px 20px;
+        }
+
+        .typing-indicator span {
+            width: 8px;
+            height: 8px;
+            background: #999;
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-indicator span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-indicator span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-10px); }
+        }
+
+        .task-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            margin-right: 5px;
+            font-weight: 500;
+        }
+
+        .task-badge.text-to-image { background: #e3f2fd; color: #1976d2; }
+        .task-badge.image-to-image { background: #f3e5f5; color: #7b1fa2; }
+        .task-badge.video-gen { background: #e8f5e9; color: #388e3c; }
+        .task-badge.batch_image_generation { background: #fff3e0; color: #f57c00; }
+
+        /* ============ 響應式設計 ============ */
+        
+        /* 平板設備 (768px - 1024px) */
+        @media (max-width: 1024px) {
+            .main-container {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .card-body {
+                padding: 20px;
+            }
+            
+            .chat-container {
+                height: 60vh;
+                min-height: 400px;
+            }
+            
+            .message-content {
+                max-width: 85%;
+            }
+            
+            .batch-item img {
+                max-height: 300px;
+            }
+            
+            .feature-tabs {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .nav-pills .nav-link {
+                margin-bottom: 5px;
+                font-size: 0.9rem;
+            }
+        }
+        
+        /* 手機設備 (768px以下) */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .header {
+                margin-bottom: 20px;
+            }
+            
+            .header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .header p {
+                font-size: 1rem;
+            }
+            
+            .card {
+                margin-bottom: 15px;
+            }
+            
+            .card-body {
+                padding: 15px;
+            }
+            
+            .chat-container {
+                height: calc(100vh - 200px);
+                min-height: 350px;
+            }
+            
+            .chat-messages {
+                padding: 15px;
+                margin-bottom: 15px;
+            }
+            
+            .message-content {
+                max-width: 95%;
+                padding: 12px 16px;
+                font-size: 0.95rem;
+            }
+            
+            .message-header {
+                font-size: 0.8rem;
+            }
+            
+            .chat-input-area {
+                padding: 12px;
+            }
+            
+            .file-upload-zone {
+                padding: 15px;
+            }
+            
+            .file-upload-zone p {
+                font-size: 0.9rem;
+            }
+            
+            .uploaded-file-item {
+                width: 60px;
+                height: 60px;
+            }
+            
+            .file-preview {
+                width: 60px;
+                height: 60px;
+            }
+            
+            .result-preview {
+                max-height: 400px;
+                padding: 8px;
+            }
+            
+            .batch-header {
+                padding: 12px;
+            }
+            
+            .batch-header h4 {
+                font-size: 14px;
+            }
+            
+            .batch-prompt {
+                font-size: 13px;
+            }
+            
+            .batch-item img {
+                max-height: 250px;
+            }
+            
+            .result-image {
+                max-height: 250px;
+            }
+            
+            .video-player {
+                max-height: 250px;
+            }
+            
+            /* 導航標籤手機優化 */
+            .feature-tabs {
+                margin-bottom: 15px;
+            }
+            
+            .nav-pills .nav-link {
+                padding: 8px 15px;
+                margin-right: 5px;
+                margin-bottom: 5px;
+                font-size: 0.85rem;
+            }
+            
+            .nav-pills .nav-link i {
+                margin-right: 5px;
+            }
+            
+            /* 按鈕手機優化 */
+            .btn-primary {
+                padding: 10px 20px;
+                font-size: 0.9rem;
+            }
+            
+            .send-btn {
+                padding: 0 15px;
+            }
+            
+            .btn-group .btn {
+                font-size: 0.8rem;
+                padding: 8px 10px;
+            }
+            
+            /* 表單手機優化 */
+            .form-control {
+                font-size: 16px; /* 防止iOS縮放 */
+            }
+            
+            textarea.form-control {
+                min-height: 80px;
+            }
+            
+            /* 標籤手機優化 */
+            .task-badge {
+                font-size: 0.75rem;
+                padding: 3px 8px;
+            }
+        }
+        
+        /* 小屏手機 (480px以下) */
+        @media (max-width: 480px) {
+            body {
+                padding: 5px;
+            }
+            
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .header p {
+                font-size: 0.9rem;
+            }
+            
+            .card-body {
+                padding: 12px;
+            }
+            
+            .chat-container {
+                height: calc(100vh - 180px);
+                min-height: 300px;
+            }
+            
+            .chat-messages {
+                padding: 10px;
+            }
+            
+            .message-content {
+                max-width: 100%;
+                padding: 10px 14px;
+                font-size: 0.9rem;
+            }
+            
+            .file-upload-zone {
+                padding: 12px;
+            }
+            
+            .file-upload-zone i {
+                font-size: 1.5rem !important;
+            }
+            
+            .file-upload-zone p {
+                font-size: 0.85rem;
+            }
+            
+            .uploaded-file-item {
+                width: 50px;
+                height: 50px;
+            }
+            
+            .file-preview {
+                width: 50px;
+                height: 50px;
+            }
+            
+            .batch-item {
+                margin-bottom: 15px;
+            }
+            
+            .batch-header {
+                padding: 10px;
+            }
+            
+            .batch-header h4 {
+                font-size: 13px;
+            }
+            
+            .batch-prompt {
+                font-size: 12px;
+            }
+            
+            .batch-item img {
+                max-height: 200px;
+            }
+            
+            .result-image {
+                max-height: 200px;
+            }
+            
+            .video-player {
+                max-height: 200px;
+            }
+            
+            .result-preview {
+                max-height: 300px;
+                padding: 5px;
+            }
+            
+            /* 導航標籤超小屏優化 */
+            .nav-pills .nav-link {
+                padding: 6px 12px;
+                font-size: 0.8rem;
+            }
+            
+            /* 按鈕超小屏優化 */
+            .btn-primary {
+                padding: 8px 16px;
+                font-size: 0.85rem;
+            }
+            
+            .send-btn {
+                padding: 0 12px;
+            }
+            
+            .btn-group {
+                flex-direction: column;
+            }
+            
+            .btn-group .btn {
+                margin-bottom: 5px;
+                width: 100%;
+            }
+        }
+        
+        /* 觸摸設備優化 */
+        @media (hover: none) and (pointer: coarse) {
+            .btn:hover {
+                transform: none;
+                box-shadow: none;
+            }
+            
+            .nav-pills .nav-link:hover {
+                background-color: rgba(255,255,255,0.1);
+            }
+            
+            .file-upload-zone:hover {
+                border-color: #ddd;
+                background: white;
+            }
+        }
+        
+        /* 高分辨率屏幕優化 */
+        @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+            .result-image,
+            .video-player {
+                image-rendering: -webkit-optimize-contrast;
+                image-rendering: crisp-edges;
+            }
+        }
+        
+        /* 深色模式支持（可選） */
+        @media (prefers-color-scheme: dark) {
+            .chat-messages {
+                background: #2d3748;
+                color: #e2e8f0;
+            }
+            
+            .message.assistant .message-content {
+                background: #4a5568;
+                color: #e2e8f0;
+            }
+            
+            .batch-item {
+                background: #4a5568;
+                border-color: #718096;
+            }
+            
+            .batch-header {
+                background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- Header -->
+        <div class="header">
+            <h1><i class="bi bi-magic"></i> VideoChatLLM</h1>
+            <p>智能多模態創作助手 - 文生圖 · 圖生圖 · Veo 視頻生成</p>
+        </div>
+
+        <!-- Feature Tabs -->
+        <ul class="nav nav-pills feature-tabs justify-content-center" id="featureTabs">
+            <li class="nav-item">
+                <a class="nav-link active" data-bs-toggle="pill" href="#textToImage">
+                    <i class="bi bi-image"></i> 文生圖
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="pill" href="#imageToImage">
+                    <i class="bi bi-arrow-left-right"></i> 圖生圖
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="pill" href="#textToVideo">
+                    <i class="bi bi-camera-video"></i> Veo 視頻
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="pill" href="#chat">
+                    <i class="bi bi-chat-dots"></i> 對話助手
+                </a>
+            </li>
+        </ul>
+
+        <!-- Tab Content -->
+        <div class="tab-content">
+            <!-- 文生圖 -->
+            <div id="textToImage" class="tab-pane fade show active">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-image"></i> 文本生成圖片</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="icon-feature text-center">
+                            <i class="bi bi-magic"></i>
+                        </div>
+                        <p class="feature-description text-center">
+                            輸入文字描述，AI 將為您生成精美的圖片
+                        </p>
+                        <div class="mb-3">
+                            <label class="form-label">輸入提示詞</label>
+                            <textarea class="form-control" id="imagePrompt" rows="3" 
+                                placeholder="例如：一隻可愛的小貓坐在窗台上，陽光灑在毛茸茸的身上"></textarea>
+                        </div>
+                        <button class="btn btn-primary w-100" onclick="generateImage()">
+                            <i class="bi bi-sparkles"></i> 生成圖片
+                        </button>
+                        
+                        <div class="loading" id="imageLoading">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">生成中...</span>
+                            </div>
+                            <p class="mt-2">正在生成圖片，請稍候...</p>
+                        </div>
+
+                        <div id="imageResult"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 圖生圖 -->
+            <div id="imageToImage" class="tab-pane fade">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-arrow-left-right"></i> 圖片風格轉換</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="icon-feature text-center">
+                            <i class="bi bi-arrow-left-right"></i>
+                        </div>
+                        <p class="feature-description text-center">
+                            上傳圖片並輸入轉換描述，AI 將為您創建新的風格
+                        </p>
+                        <div class="mb-3">
+                            <label class="form-label">上傳圖片（可選多張）</label>
+                            <input type="file" class="form-control" id="imageUpload" accept="image/*" multiple>
+                            <small class="text-muted">可以同時選擇多張圖片作為參考</small>
+                            <div id="imagePreview" class="mt-3"></div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">轉換描述</label>
+                            <textarea class="form-control" id="transformPrompt" rows="3" 
+                                placeholder="例如：將圖片轉換為油畫風格"></textarea>
+                        </div>
+                        <button class="btn btn-primary w-100" onclick="transformImage()">
+                            <i class="bi bi-arrow-repeat"></i> 轉換圖片
+                        </button>
+
+                        <div class="loading" id="transformLoading">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">轉換中...</span>
+                            </div>
+                            <p class="mt-2">正在轉換圖片，請稍候...</p>
+                        </div>
+
+                        <div id="transformResult"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Veo 視頻生成 -->
+            <div id="textToVideo" class="tab-pane fade">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-camera-video"></i> Veo 視頻生成</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="icon-feature text-center">
+                            <i class="bi bi-film"></i>
+                        </div>
+                        <p class="feature-description text-center">
+                            使用 Google Veo3.1 根據文字描述或圖片生成高質量視頻
+                        </p>
+                        
+                        <!-- 模式選擇 -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">選擇生成模式</label>
+                            <div class="btn-group w-100" role="group">
+                                <input type="radio" class="btn-check" name="videoMode" id="textToVideoMode" value="text_to_video" checked>
+                                <label class="btn btn-outline-primary" for="textToVideoMode">
+                                    <i class="bi bi-text-paragraph"></i> 文生視頻
+                                </label>
+                                
+                                <input type="radio" class="btn-check" name="videoMode" id="imageToVideoMode" value="image_to_video">
+                                <label class="btn btn-outline-primary" for="imageToVideoMode">
+                                    <i class="bi bi-image"></i> 圖生視頻
+                                </label>
+                                
+                                <input type="radio" class="btn-check" name="videoMode" id="firstToLastMode" value="first_to_last">
+                                <label class="btn btn-outline-primary" for="firstToLastMode">
+                                    <i class="bi bi-arrows-expand"></i> 首尾幀插值
+                                </label>
+                            </div>
+                            <small class="text-muted d-block mt-2" id="modeDescription">
+                                純文字描述生成視頻
+                            </small>
+                        </div>
+
+                        <!-- 文生視頻輸入 -->
+                        <div id="textToVideoInputs" class="mode-inputs">
+                            <!-- 無額外輸入，只需要提示詞 -->
+                        </div>
+
+                        <!-- 圖生視頻輸入 -->
+                        <div id="imageToVideoInputs" class="mode-inputs" style="display: none;">
+                            <div class="mb-3">
+                                <label class="form-label">上傳參考圖片</label>
+                                <input type="file" class="form-control" id="videoImageUpload" accept="image/*">
+                                <small class="text-muted">上傳一張圖片作為視頻參考</small>
+                                <div id="videoImagePreview" class="mt-2"></div>
+                            </div>
+                        </div>
+
+                        <!-- 首尾幀插值輸入 -->
+                        <div id="firstToLastInputs" class="mode-inputs" style="display: none;">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">首幀圖片</label>
+                                    <input type="file" class="form-control" id="firstFrameUpload" accept="image/*">
+                                    <small class="text-muted">視頻的第一幀</small>
+                                    <div id="firstFramePreview" class="mt-2"></div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">尾幀圖片</label>
+                                    <input type="file" class="form-control" id="lastFrameUpload" accept="image/*">
+                                    <small class="text-muted">視頻的最後一幀</small>
+                                    <div id="lastFramePreview" class="mt-2"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 通用輸入 -->
+                        <div class="mb-3">
+                            <label class="form-label">視頻描述（英文）</label>
+                            <textarea class="form-control" id="videoPrompt" rows="3" 
+                                placeholder="例如：A majestic deer walking gracefully through a misty forest in the morning light"></textarea>
+                            <small class="text-muted" id="promptHint">提示詞描述視頻的整體風格和動作</small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">視頻時長（秒）</label>
+                            <input type="number" class="form-control" id="videoDuration" value="5" min="5" max="30">
+                        </div>
+                        <button class="btn btn-primary w-100" onclick="generateVideo()">
+                            <i class="bi bi-play-circle"></i> 生成視頻
+                        </button>
+
+                        <div class="loading" id="videoLoading">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">生成中...</span>
+                            </div>
+                            <p class="mt-2">正在生成視頻，可能需要幾分鐘時間，請稍候...</p>
+                            <small class="text-muted">視頻生成通常需要 1-3 分鐘</small>
+                        </div>
+
+                        <div id="videoResult"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 對話助手 -->
+            <div id="chat" class="tab-pane fade">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-chat-dots"></i> AI 智能對話助手</h5>
+                        <small>支持自然語言對話，自動識別任務類型（文生圖/圖生圖/視頻生成）</small>
+                    </div>
+                    <div class="card-body">
+                        <!-- 對話區域 -->
+                        <div class="chat-container">
+                            <div class="chat-messages" id="chatMessages">
+                                <!-- 歡迎消息 -->
+                                <div class="message assistant">
+                                    <div class="message-content">
+                                        <div class="message-header">
+                                            <i class="bi bi-robot"></i> AI 助手
+                                        </div>
+                                        <p>您好！我是智能多模態創作助手 🎨</p>
+                                        <p><strong>我可以幫您：</strong></p>
+                                        <ul style="margin: 10px 0; padding-left: 20px;">
+                                            <li>📝 文生圖：描述您想要的圖片</li>
+                                            <li>🖼️ 圖生圖：上傳圖片並說明要如何修改</li>
+                                            <li>🎬 圖生視頻：上傳圖片生成動態視頻</li>
+                                            <li>↔️ 首尾幀插值：上傳首尾兩幀生成完整視頻</li>
+                                            <li>📹 文生視頻：純文字描述生成視頻</li>
+                                        </ul>
+                                        <p><small>💡 提示：您可以直接用自然語言告訴我需求，也可以拖拽或上傳文件（最多10個）</small></p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 輸入區域 -->
+                            <div class="chat-input-area">
+                                <!-- 文件上傳區 -->
+                                <div class="file-upload-zone" id="fileUploadZone">
+                                    <i class="bi bi-cloud-upload" style="font-size: 2rem; color: #6c757d;"></i>
+                                    <p class="mb-0 mt-2">拖拽文件到此處或點擊上傳</p>
+                                    <small class="text-muted">支持圖片格式，最多10個文件</small>
+                                    <input type="file" id="chatFileInput" multiple accept="image/*" style="display: none;">
+                                </div>
+
+                                <!-- 已上傳文件預覽 -->
+                                <div class="uploaded-files" id="uploadedFiles"></div>
+
+                                <!-- 輸入框 -->
+                                <div class="chat-input-box">
+                                    <textarea 
+                                        id="chatInput" 
+                                        rows="3" 
+                                        placeholder="輸入您的需求，例如：幫我生成一張夕陽下的海灘風景圖..."
+                                    ></textarea>
+                                    <button class="send-btn" id="sendBtn" onclick="sendChatMessage()">
+                                        <i class="bi bi-send-fill"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 模式切換
+        document.querySelectorAll('input[name="videoMode"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                const mode = this.value;
+                const modeDescription = document.getElementById('modeDescription');
+                const promptHint = document.getElementById('promptHint');
+                
+                // 隱藏所有模式輸入
+                document.getElementById('textToVideoInputs').style.display = 'none';
+                document.getElementById('imageToVideoInputs').style.display = 'none';
+                document.getElementById('firstToLastInputs').style.display = 'none';
+                
+                // 根據模式顯示對應輸入
+                if (mode === 'text_to_video') {
+                    document.getElementById('textToVideoInputs').style.display = 'block';
+                    modeDescription.textContent = '純文字描述生成視頻';
+                    promptHint.textContent = '提示詞描述視頻的整體風格和動作';
+                } else if (mode === 'image_to_video') {
+                    document.getElementById('imageToVideoInputs').style.display = 'block';
+                    modeDescription.textContent = '從單張圖片生成視頻動畫';
+                    promptHint.textContent = '提示詞描述圖片如何動起來';
+                } else if (mode === 'first_to_last') {
+                    document.getElementById('firstToLastInputs').style.display = 'block';
+                    modeDescription.textContent = '上傳首尾兩幀，AI 自動插值生成中間幀';
+                    promptHint.textContent = '提示詞描述首尾幀之間的過渡效果（可選）';
+                }
+            });
+        });
+
+        // 圖片預覽 - 單張圖片（圖生視頻）
+        document.getElementById('videoImageUpload')?.addEventListener('change', function(e) {
+            const preview = document.getElementById('videoImagePreview');
+            preview.innerHTML = '';
+            
+            if (this.files && this.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.innerHTML = `
+                        <img src="${e.target.result}" style="width: 200px; height: 200px; object-fit: cover; border-radius: 8px; border: 2px solid #ddd;">
+                    `;
+                };
+                reader.readAsDataURL(this.files[0]);
+            }
+        });
+
+        // 圖片預覽 - 首幀
+        document.getElementById('firstFrameUpload')?.addEventListener('change', function(e) {
+            const preview = document.getElementById('firstFramePreview');
+            preview.innerHTML = '';
+            
+            if (this.files && this.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.innerHTML = `
+                        <img src="${e.target.result}" style="width: 100%; max-height: 150px; object-fit: cover; border-radius: 8px; border: 2px solid #ddd;">
+                    `;
+                };
+                reader.readAsDataURL(this.files[0]);
+            }
+        });
+
+        // 圖片預覽 - 尾幀
+        document.getElementById('lastFrameUpload')?.addEventListener('change', function(e) {
+            const preview = document.getElementById('lastFramePreview');
+            preview.innerHTML = '';
+            
+            if (this.files && this.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.innerHTML = `
+                        <img src="${e.target.result}" style="width: 100%; max-height: 150px; object-fit: cover; border-radius: 8px; border: 2px solid #ddd;">
+                    `;
+                };
+                reader.readAsDataURL(this.files[0]);
+            }
+        });
+
+        // 文生圖
+        async function generateImage() {
+            const prompt = document.getElementById('imagePrompt').value;
+            if (!prompt) {
+                alert('請輸入提示詞');
+                return;
+            }
+
+            const loading = document.getElementById('imageLoading');
+            const resultDiv = document.getElementById('imageResult');
+            
+            loading.classList.add('show');
+            resultDiv.innerHTML = '';
+
+            try {
+                const response = await fetch('/api/generate_image', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({prompt})
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="alert alert-success">
+                            <i class="bi bi-check-circle"></i> 圖片生成成功！
+                        </div>
+                        <img src="${data.image}" class="result-image" alt="生成的圖片">
+                        <div class="d-grid gap-2 mt-3">
+                            <button class="btn btn-outline-primary" onclick="window.open('${data.image}')">
+                                <i class="bi bi-download"></i> 下載圖片
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="alert alert-danger">生成失敗: ${error.message}</div>`;
+            } finally {
+                loading.classList.remove('show');
+            }
+        }
+
+        // 圖生圖 - 支持多張圖片
+        async function transformImage() {
+            const prompt = document.getElementById('transformPrompt').value;
+            const fileInput = document.getElementById('imageUpload');
+            const files = fileInput.files;
+
+            if (!prompt || files.length === 0) {
+                alert('請上傳圖片並輸入轉換描述');
+                return;
+            }
+
+            const loading = document.getElementById('transformLoading');
+            const resultDiv = document.getElementById('transformResult');
+            
+            loading.classList.add('show');
+            resultDiv.innerHTML = '';
+
+            // 讀取所有圖片
+            const readAllImages = () => {
+                return Promise.all(Array.from(files).map(file => {
+                    return new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onload = (e) => resolve(e.target.result);
+                        reader.readAsDataURL(file);
+                    });
+                }));
+            };
+
+            try {
+                const images = await readAllImages();
+                
+                const response = await fetch('/api/transform_image', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({prompt, images})
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    let imagesHtml = data.images ? 
+                        data.images.map(img => `<img src="${img}" class="result-image mb-3" alt="轉換後的圖片" style="margin-bottom: 15px;">`).join('') :
+                        `<img src="${data.image}" class="result-image" alt="轉換後的圖片">`;
+                    
+                    let downloadBtns = data.images && data.images.length > 0 ? 
+                        data.images.map((img, idx) => `<button class="btn btn-outline-primary mb-2" onclick="window.open('${img}')"><i class="bi bi-download"></i> 下載圖片 ${idx + 1}</button>`).join('') :
+                        `<button class="btn btn-outline-primary" onclick="window.open('${data.image}')"><i class="bi bi-download"></i> 下載圖片</button>`;
+
+                    resultDiv.innerHTML = `
+                        <div class="alert alert-success">
+                            <i class="bi bi-check-circle"></i> 圖片轉換成功！${data.count ? '（' + data.count + ' 張）' : ''}
+                        </div>
+                        ${imagesHtml}
+                        <div class="d-grid gap-2 mt-3">
+                            ${downloadBtns}
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="alert alert-danger">轉換失敗: ${error.message}</div>`;
+            } finally {
+                loading.classList.remove('show');
+            }
+        }
+
+        // 預覽上傳的圖片
+        document.getElementById('imageUpload').addEventListener('change', function(e) {
+            const preview = document.getElementById('imagePreview');
+            preview.innerHTML = '';
+            
+            Array.from(this.files).forEach((file, index) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const imgContainer = document.createElement('div');
+                    imgContainer.className = 'd-inline-block me-2 mb-2';
+                    imgContainer.innerHTML = `
+                        <div style="position: relative; border: 2px solid #ddd; border-radius: 8px; padding: 5px;">
+                            <img src="${e.target.result}" style="width: 150px; height: 150px; object-fit: cover; border-radius: 5px;">
+                            <span class="badge bg-primary position-absolute top-0 start-0 m-1">${index + 1}</span>
+                        </div>
+                    `;
+                    preview.appendChild(imgContainer);
+                };
+                reader.readAsDataURL(file);
+            });
+        });
+
+        // 生成視頻
+        async function generateVideo() {
+            const prompt = document.getElementById('videoPrompt').value;
+            const duration = parseInt(document.getElementById('videoDuration').value);
+            const mode = document.querySelector('input[name="videoMode"]:checked').value;
+
+            // 驗證輸入
+            if (mode === 'text_to_video' && !prompt) {
+                alert('請輸入視頻描述');
+                return;
+            }
+
+            if (mode === 'image_to_video') {
+                const imageInput = document.getElementById('videoImageUpload');
+                if (!imageInput.files || imageInput.files.length === 0) {
+                    alert('請上傳參考圖片');
+                    return;
+                }
+                if (!prompt) {
+                    alert('請輸入視頻描述');
+                    return;
+                }
+            }
+
+            if (mode === 'first_to_last') {
+                const firstFrameInput = document.getElementById('firstFrameUpload');
+                const lastFrameInput = document.getElementById('lastFrameUpload');
+                if (!firstFrameInput.files || firstFrameInput.files.length === 0 || 
+                    !lastFrameInput.files || lastFrameInput.files.length === 0) {
+                    alert('請上傳首幀和尾幀圖片');
+                    return;
+                }
+            }
+
+            const loading = document.getElementById('videoLoading');
+            const resultDiv = document.getElementById('videoResult');
+            
+            loading.classList.add('show');
+            resultDiv.innerHTML = '';
+
+            const formData = new FormData();
+            formData.append('prompt', prompt);
+            formData.append('duration', duration);
+            formData.append('mode', mode);
+
+            // 根據模式添加文件
+            if (mode === 'image_to_video') {
+                const imageInput = document.getElementById('videoImageUpload');
+                formData.append('image', imageInput.files[0]);
+            } else if (mode === 'first_to_last') {
+                const firstFrameInput = document.getElementById('firstFrameUpload');
+                const lastFrameInput = document.getElementById('lastFrameUpload');
+                formData.append('first_frame', firstFrameInput.files[0]);
+                formData.append('last_frame', lastFrameInput.files[0]);
+            }
+
+            try {
+                const response = await fetch('/api/generate_video', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="alert alert-success">
+                            <i class="bi bi-check-circle"></i> 視頻生成成功！
+                        </div>
+                        <video controls class="video-player">
+                            <source src="/api/download/${data.filename}" type="video/mp4">
+                        </video>
+                        <div class="generation-time">生成耗時: ${data.generation_time.toFixed(2)} 秒</div>
+                        <div class="d-grid gap-2 mt-3">
+                            <a href="/api/download/${data.filename}" class="btn btn-outline-primary" download>
+                                <i class="bi bi-download"></i> 下載視頻
+                            </a>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="alert alert-danger">生成失敗: ${error.message}</div>`;
+            } finally {
+                loading.classList.remove('show');
+            }
+        }
+
+        // ============ 智能對話助手 ============
+        let chatFiles = [];
+        const MAX_FILES = 10;
+
+        // 初始化文件上傳
+        const fileUploadZone = document.getElementById('fileUploadZone');
+        const chatFileInput = document.getElementById('chatFileInput');
+        const uploadedFilesDiv = document.getElementById('uploadedFiles');
+        const chatInput = document.getElementById('chatInput');
+        const sendBtn = document.getElementById('sendBtn');
+
+        // 點擊上傳區
+        fileUploadZone.addEventListener('click', () => {
+            chatFileInput.click();
+        });
+
+        // 文件選擇
+        chatFileInput.addEventListener('change', (e) => {
+            handleFiles(Array.from(e.target.files));
+            e.target.value = ''; // 清空input以允許重複選擇
+        });
+
+        // 拖拽上傳
+        fileUploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            fileUploadZone.classList.add('dragover');
+        });
+
+        fileUploadZone.addEventListener('dragleave', () => {
+            fileUploadZone.classList.remove('dragover');
+        });
+
+        fileUploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            fileUploadZone.classList.remove('dragover');
+            const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+            handleFiles(files);
+        });
+
+        // Enter 發送
+        chatInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendChatMessage();
+            }
+        });
+
+        // 處理上傳的文件
+        function handleFiles(files) {
+            if (chatFiles.length + files.length > MAX_FILES) {
+                alert(`最多只能上傳 ${MAX_FILES} 個文件`);
+                return;
+            }
+
+            files.forEach(file => {
+                if (!file.type.startsWith('image/')) {
+                    alert('僅支持圖片文件');
+                    return;
+                }
+                chatFiles.push(file);
+            });
+
+            renderUploadedFiles();
+        }
+
+        // 渲染已上傳文件
+        function renderUploadedFiles() {
+            uploadedFilesDiv.innerHTML = '';
+            chatFiles.forEach((file, index) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'uploaded-file-item';
+                    fileItem.innerHTML = `
+                        <img src="${e.target.result}" alt="${file.name}">
+                        <button class="remove-file" onclick="removeFile(${index})">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    `;
+                    uploadedFilesDiv.appendChild(fileItem);
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // 移除文件
+        function removeFile(index) {
+            chatFiles.splice(index, 1);
+            renderUploadedFiles();
+        }
+
+        // 發送消息
+        async function sendChatMessage() {
+            const message = chatInput.value.trim();
+            
+            if (!message && chatFiles.length === 0) {
+                alert('請輸入消息或上傳文件');
+                return;
+            }
+
+            // 禁用輸入
+            sendBtn.disabled = true;
+            chatInput.disabled = true;
+
+            // 添加用戶消息到界面
+            addMessage('user', message, chatFiles);
+
+            // 清空輸入
+            const filesForRequest = [...chatFiles];
+            chatInput.value = '';
+            chatFiles = [];
+            renderUploadedFiles();
+
+            // 顯示輸入中指示器
+            showTypingIndicator();
+
+            try {
+                // 第一步：分析意圖
+                const intentResult = await analyzeIntent(message, filesForRequest);
+                
+                // 第二步：執行任務
+                const executionResult = await executeTask(intentResult);
+                
+                // 添加AI回應
+                addMessage('assistant', executionResult.message, [], executionResult);
+
+            } catch (error) {
+                console.error('Error:', error);
+                addMessage('assistant', `❌ 執行失敗: ${error.message}`, []);
+            } finally {
+                hideTypingIndicator();
+                sendBtn.disabled = false;
+                chatInput.disabled = false;
+                chatInput.focus();
+            }
+        }
+
+        // 分析意圖
+        async function analyzeIntent(message, files) {
+            const formData = new FormData();
+            formData.append('message', message);
+            files.forEach(file => {
+                formData.append('files', file);
+            });
+
+            const response = await fetch('/api/analyze_intent', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error('意圖分析失敗');
+            }
+
+            return await response.json();
+        }
+
+        // 執行任務
+        async function executeTask(intentData) {
+            const response = await fetch('/api/execute_task', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(intentData)
+            });
+
+            if (!response.ok) {
+                throw new Error('任務執行失敗');
+            }
+
+            return await response.json();
+        }
+
+        // 添加消息到界面
+        function addMessage(role, text, files = [], result = null) {
+            const messagesDiv = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}`;
+
+            let filesHtml = '';
+            if (files.length > 0) {
+                filesHtml = '<div class="message-files">';
+                files.forEach(file => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const filePreview = document.createElement('div');
+                        filePreview.className = 'file-preview';
+                        filePreview.innerHTML = `<img src="${e.target.result}" alt="${file.name}">`;
+                        messageDiv.querySelector('.message-files').appendChild(filePreview);
+                    };
+                    reader.readAsDataURL(file);
+                });
+                filesHtml += '</div>';
+            }
+
+            let resultHtml = '';
+            if (result) {
+                if (result.taskType) {
+                    const taskLabels = {
+                        'text_to_image': '文生圖',
+                        'image_to_image': '圖生圖',
+                        'image_to_video': '圖生視頻',
+                        'text_to_video': '文生視頻',
+                        'first_to_last_frame': '首尾幀插值'
+                    };
+                    resultHtml += `<span class="task-badge ${result.taskType}">${taskLabels[result.taskType] || result.taskType}</span>`;
+                }
+
+                if (result.images) {
+                    resultHtml += '<div class="result-preview">';
+                    
+                    // 如果是批量生成，顯示場景詳細信息
+                    if (result.batch_details && result.batch_details.length > 0) {
+                        result.batch_details.forEach((detail, index) => {
+                            resultHtml += `
+                                <div class="batch-item">
+                                    <div class="batch-header">
+                                        <h4>場景 ${detail.step}</h4>
+                                        <p class="batch-prompt">${detail.prompt}</p>
+                                    </div>
+                                    <img src="${detail.image}" alt="Generated Scene ${detail.step}">
+                                </div>
+                            `;
+                        });
+                    } else {
+                        // 普通圖片顯示
+                        result.images.forEach(img => {
+                            resultHtml += `<img src="${img}" alt="Generated Image">`;
+                        });
+                    }
+                    
+                    resultHtml += '</div>';
+                }
+
+                if (result.video) {
+                    resultHtml += `
+                        <div class="result-preview">
+                            <video controls class="video-player">
+                                <source src="${result.video}" type="video/mp4">
+                            </video>
+                        </div>
+                    `;
+                }
+            }
+
+            messageDiv.innerHTML = `
+                <div class="message-content">
+                    <div class="message-header">
+                        <i class="bi bi-${role === 'user' ? 'person-fill' : 'robot'}"></i>
+                        ${role === 'user' ? '您' : 'AI 助手'}
+                    </div>
+                    ${text ? `<p style="margin: 0;">${text}</p>` : ''}
+                    ${filesHtml}
+                    ${resultHtml}
+                </div>
+            `;
+
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        // 顯示輸入中指示器
+        function showTypingIndicator() {
+            const messagesDiv = document.getElementById('chatMessages');
+            const indicator = document.createElement('div');
+            indicator.className = 'message assistant';
+            indicator.id = 'typingIndicator';
+            indicator.innerHTML = `
+                <div class="message-content">
+                    <div class="typing-indicator">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </div>
+            `;
+            messagesDiv.appendChild(indicator);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        // 隱藏輸入中指示器
+        function hideTypingIndicator() {
+            const indicator = document.getElementById('typingIndicator');
+            if (indicator) {
+                indicator.remove();
+            }
+        }
+
+        // 對話（保留舊版兼容性）
+        async function sendChat() {
+            return sendChatMessage();
+        }
+    </script>
+</body>
+</html>
+
